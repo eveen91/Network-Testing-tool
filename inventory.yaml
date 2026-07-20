@@ -1,0 +1,16 @@
+devices:
+  - name: "device1"
+    role: "cp-cluster-member"
+    ip: "10.226.199.4"
+    login: "admin"
+    password_env_var: "CHECKPOINT_PASSWORD"
+    ssh_key_path: "~/.ssh/id_rsa"
+
+  - name: "device2"
+    role: "aruba-vsx-node"
+    ip: "10.226.199.5"
+    login: "admin"
+    password_env_var: "ARUBA_PASSWORD"
+    ssh_key_path: "~/.ssh/id_aruba"
+
+  # Add more devices here as needed...
