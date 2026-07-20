@@ -15,16 +15,19 @@
 ## Setting Up Credentials
 
 1. Create a `.env` file in your project root directory.
-2. Add the following lines to the `.env` file, replacing placeholders with actual values:
+2. Add the following lines to the `.env` file, replacing placeholders with actual values for each device:
+
    ```sh
-   CHECKPOINT_PASSWORD=your_checkpoint_password
-   ARUBA_PASSWORD=your_aruba_password
+   CHECKPOINT_DEVICE1_PASSWORD=your_device1_password
+   ARUBA_DEVICE2_PASSWORD=your_device2_password
+   # Add more device-specific passwords as needed...
    ```
+
+3. Ensure your `inventory.yaml` is correctly set up to reference these environment variables.
 
 ## Running the Connectivity Test
 
-1. Ensure your `inventory.yaml` is correctly set up as described above.
-2. Run the connectivity test script:
+1. Run the connectivity test script:
    ```sh
    python test_connectivity.py
    ```
