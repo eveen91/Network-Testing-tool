@@ -1,0 +1,141 @@
+# commands/checkpoint.yaml
+
+- test_id: BASE-CP-01
+  section: "1.1"
+  description: "Cluster/HA state"
+  command: "cphaprob stat"
+  mode: expert
+  risk: read-only-safe
+
+- test_id: BASE-CP-02
+  section: "1.1"
+  description: "Cluster interface state"
+  command: "cphaprob -a if"
+  mode: expert
+  risk: read-only-safe
+
+- test_id: BASE-CP-03
+  section: "1.1"
+  description: "Sync state"
+  command: "cphaprob syncstat"
+  mode: expert
+  risk: read-only-safe
+
+- test_id: BASE-CP-04
+  section: "1.1"
+  description: "OS stats (all)"
+  command: "cpstat os -f all"
+  mode: expert
+  risk: read-only-safe
+
+- test_id: BASE-CP-05
+  section: "1.1"
+  description: "FW stats (all)"
+  command: "cpstat fw -f all"
+  mode: expert
+  risk: read-only-safe
+
+- test_id: BASE-CP-06
+  section: "1.1"
+  description: "Top snapshot"
+  command: "top -n 1"
+  mode: expert
+  risk: read-only-safe
+
+- test_id: BASE-CP-07
+  section: "1.1"
+  description: "Memory"
+  command: "free -m"
+  mode: expert
+  risk: read-only-safe
+
+- test_id: BASE-CP-08
+  section: "1.1"
+  description: "Interface counters"
+  command: "netstat -ni"
+  mode: expert
+  risk: read-only-safe
+
+- test_id: BASE-CP-09
+  section: "1.1"
+  description: "Interfaces (Linux view)"
+  command: "ifconfig -a"
+  mode: expert
+  risk: read-only-safe
+
+- test_id: BASE-CP-10
+  section: "1.1"
+  description: "Interfaces (clish, native)"
+  command: 'clish -c "show interfaces"'
+  mode: expert
+  risk: read-only-safe
+
+- test_id: BASE-CP-11
+  section: "1.1"
+  description: "Routing (clish, native)"
+  command: 'clish -c "show routing"'
+  mode: expert
+  risk: read-only-safe
+
+- test_id: BASE-CP-12
+  section: "1.1"
+  description: "Route table (expert cross-check)"
+  command: "ip route show table main"
+  mode: expert
+  risk: read-only-safe
+
+- test_id: BASE-CP-13
+  section: "1.1"
+  description: "Route table (netstat)"
+  command: "netstat -rn"
+  mode: expert
+  risk: read-only-safe
+
+- test_id: BASE-CP-14
+  section: "1.1"
+  description: "Kernel connection stats"
+  command: "fw ctl pstat"
+  mode: expert
+  risk: read-only-safe
+
+- test_id: BASE-CP-15
+  section: "1.1"
+  description: "Connection table size"
+  command: "fw tab -t connections -s"
+  mode: expert
+  risk: read-only-safe
+
+- test_id: BASE-CP-16
+  section: "1.1"
+  description: "Policy status"
+  command: "fw stat"
+  mode: expert
+  risk: read-only-safe
+
+- test_id: BASE-CP-17
+  section: "1.1"
+  description: "Version/build"
+  command: "fw ver -k"
+  mode: expert
+  risk: read-only-safe
+
+- test_id: BASE-CP-18
+  section: "1.1"
+  description: "License"
+  command: "cplic print"
+  mode: expert
+  risk: read-only-safe
+
+- test_id: BASE-CP-19
+  section: "1.1"
+  description: "Policy detail"
+  command: "cpstat fw -f policy"
+  mode: expert
+  risk: read-only-safe
+
+- test_id: BASE-CP-20
+  section: "1.1"
+  description: "Message log tail"
+  command: "tail -n 200 /var/log/messages"
+  mode: expert
+  risk: read-only-safe

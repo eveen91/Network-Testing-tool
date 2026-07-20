@@ -1,0 +1,155 @@
+# commands/aruba.yaml
+
+- test_id: BASE-AR-01
+  section: "1.2"
+  description: "System summary"
+  command: "show system"
+  mode: cli
+  risk: read-only-safe
+
+- test_id: BASE-AR-02
+  section: "1.2"
+  description: "Resource utilization"
+  api: "system.resource_utilization"
+  risk: read-only-safe
+
+- test_id: BASE-AR-03
+  section: "1.2"
+  description: "Environment/sensors"
+  command: "show environment"
+  mode: cli
+  risk: read-only-safe
+
+- test_id: BASE-AR-04
+  section: "1.2"
+  description: "Version"
+  api: "system.firmware_version"
+  risk: read-only-safe
+
+- test_id: BASE-AR-05
+  section: "1.2"
+  description: "VSX status"
+  api: "vsx.status"
+  risk: read-only-safe
+
+- test_id: BASE-AR-06
+  section: "1.2"
+  description: "VSX ISL status"
+  command: "show vsx status inter-switch-link"
+  mode: cli
+  risk: read-only-safe
+
+- test_id: BASE-AR-07
+  section: "1.2"
+  description: "VSX config-sync status"
+  command: "show vsx status config-sync"
+  mode: cli
+  risk: read-only-safe
+
+- test_id: BASE-AR-08
+  section: "1.2"
+  description: "VSX statistics"
+  command: "show vsx statistics"
+  mode: cli
+  risk: read-only-safe
+
+- test_id: BASE-AR-09
+  section: "1.2"
+  description: "Interfaces brief"
+  api: "interfaces.summary"
+  risk: read-only-safe
+
+- test_id: BASE-AR-10
+  section: "1.2"
+  description: "Transceiver status"
+  command: "show interface transceiver"
+  mode: cli
+  risk: read-only-safe
+
+- test_id: BASE-AR-11
+  section: "1.2"
+  description: "LLDP neighbors"
+  api: "lldp.neighbors"
+  risk: read-only-safe
+
+- test_id: BASE-AR-12
+  section: "1.2"
+  description: "VLANs"
+  api: "vlans.all"
+  risk: read-only-safe
+
+- test_id: BASE-AR-13
+  section: "1.2"
+  description: "VLAN summary"
+  command: "show vlan summary"
+  mode: cli
+  risk: read-only-safe
+
+- test_id: BASE-AR-14
+  section: "1.2"
+  description: "Route table"
+  api: "routing.ipv4_routes"
+  risk: read-only-safe
+
+- test_id: BASE-AR-15
+  section: "1.2"
+  description: "BGP routes"
+  command: "show ip route bgp"
+  mode: cli
+  risk: read-only-safe
+
+- test_id: BASE-AR-16
+  section: "1.2"
+  description: "OSPF routes"
+  command: "show ip route ospf"
+  mode: cli
+  risk: read-only-safe
+
+- test_id: BASE-AR-17
+  section: "1.2"
+  description: "BGP summary"
+  command: "show bgp all summary"
+  mode: cli
+  risk: read-only-safe
+
+- test_id: BASE-AR-18
+  section: "1.2"
+  description: "OSPF neighbors"
+  command: "show ip ospf neighbor"
+  mode: cli
+  risk: read-only-safe
+
+- test_id: BASE-AR-19
+  section: "1.2"
+  description: "OSPF interfaces"
+  command: "show ip ospf interface brief"
+  mode: cli
+  risk: read-only-safe
+
+- test_id: BASE-AR-20
+  section: "1.2"
+  description: "VXLAN state"
+  command: "show vxlan"
+  mode: cli
+  risk: read-only-safe
+
+- test_id: BASE-AR-21
+  section: "1.2"
+  description: "EVPN state"
+  command: "show evpn"
+  mode: cli
+  risk: read-only-safe
+
+- test_id: BASE-AR-22
+  section: "1.2"
+  description: "BGP L2VPN EVPN summary"
+  command: "show bgp l2vpn evpn summary"
+  mode: cli
+  risk: read-only-safe
+
+- test_id: BASE-AR-23
+  section: "1.2"
+  description: "MAC table count"
+  command: "show mac-address-table count"
+  mode: cli
+  risk: read-only-safe
