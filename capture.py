@@ -6,10 +6,19 @@ from datetime import datetime
 from connectors.checkpoint_conn import CheckPointConnection
 from connectors.aruba_conn import ArubaConnection
 
-def load_commands(filepath):
+def load_inventory(filepath):
     with open(filepath, 'r') as file:
-        commands = yaml.safe_load(file)
-    return commands
+        inventory = yaml.safe_load(file)
+    return inventory['devices']
+
+def run_api_call(conn, api):
+    # Implement API call here (placeholder function for now)
+    try:
+        response = conn.send_command_timing(f"show {api}")
+        return True, response
+    except Exception as e:
+        print(f"Failed to execute API {api}: {e}")
+        return False, str(e)
 
 def run_command(conn, command):
     try:
@@ -29,7 +38,7 @@ def consolidate_outputs(device_name, output_dir, timestamp):
     command_files = [f for f in os.listdir(output_dir) if device_name in f and ".txt" in f]
     
     with open(consolidated_file, 'w') as file:
-        for cmd_file in command_files:
+        for cmd_file in sorted(command_files):
             with open(os.path.join(output_dir, cmd_file), 'r') as cmd_f:
                 content = cmd_f.read()
                 file.write(f"Command: {cmd_file}\n")
@@ -97,7 +106,6 @@ def capture_pre_post(ticket_number, phase, devices=None):
                     continue
 
                 if api:
-                    # Implement API call here
                     output_success, raw_output = run_api_call(conn, api)
                 else:
                     output_success, raw_output = run_command(conn, command)
