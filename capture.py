@@ -11,6 +11,11 @@ def load_inventory(filepath):
         inventory = yaml.safe_load(file)
     return inventory['devices']
 
+def load_commands(filepath):
+    with open(filepath, 'r') as file:
+        commands = yaml.safe_load(file)
+    return commands
+
 def run_api_call(conn, api):
     # Implement API call here (placeholder function for now)
     try:
