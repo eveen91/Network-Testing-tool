@@ -1,0 +1,9 @@
+- test_id: T-22
+  section: "6"
+  description: "Planned failover test"
+  note: Disruptive — execute and record manually. Never automate.
+
+- test_id: T-13-review
+  section: "3.D"
+  description: "SmartConsole anti-spoofing log review"
+  note: T-13's zdebug is a sanity check only; this is the authoritative check.

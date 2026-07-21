@@ -1,8 +1,7 @@
-# connectors/checkpoint_conn.py
-
-from netmiko import ConnectHandler
 import os
 from dotenv import load_dotenv
+from netmiko import ConnectHandler
+import time
 
 class CheckPointConnection:
     def __init__(self, device):
@@ -36,3 +35,18 @@ class CheckPointConnection:
     def disconnect(self):
         if self.connection:
             self.connection.disconnect()
+
+    def send_command_timing_debug(self, command, max_duration_seconds=30):
+        try:
+            output = ""
+            start_time = time.time()
+            while True:
+                char = self.connection.read_channel()
+                output += char
+                end_time = time.time()
+                if end_time - start_time > max_duration_seconds or not char:
+                    break
+            return True, output
+        except Exception as e:
+            print(f"Failed to execute {command}: {e}")
+            return False, str(e)

@@ -139,3 +139,71 @@
   command: "tail -n 200 /var/log/messages"
   mode: expert
   risk: read-only-safe
+
+- test_id: T-01
+  section: "2.1"
+  description: "Cluster HA state"
+  command: "cphaprob stat"
+  mode: expert
+  risk: read-only-safe
+
+- test_id: T-02
+  section: "2.1"
+  description: "Sync state"
+  command: "cphaprob syncstat"
+  mode: expert
+  risk: read-only-safe
+
+- test_id: T-03
+  section: "2.1"
+  description: "Policy install status"
+  command: "fw stat"
+  mode: expert
+  risk: read-only-safe
+
+- test_id: T-11-cp
+  section: "3.E"
+  description: "ECP route table"
+  command: "ip route show table main"
+  mode: expert
+  risk: read-only-safe
+
+- test_id: T-13
+  section: "3.D"
+  description: "Anti-spoofing drop check"
+  command: "fw ctl zdebug + drop | grep -i spoof"
+  mode: expert
+  risk: read-only-debug
+  max_duration_seconds: 20
+
+- test_id: T-15
+  section: "3.D"
+  description: "NAT allocation table"
+  command: "fw tab -t nat_alloc_table -s"
+  mode: expert
+  risk: read-only-safe
+
+- test_id: T-16
+  section: "3.D"
+  description: "Connection table entries"
+  command: "fw tab -t connections -f | grep {test_host_ip}"
+  mode: expert
+  risk: read-only-safe
+  requires_param: true
+  params:
+    test_host_ip:
+      type: string
+      description: IP address of the test host
+
+- test_id: T-19
+  section: "4.2"
+  description: "Live packet trace"
+  command: 'fw monitor -e "accept src={test_host_ip} or dst={test_host_ip};"'
+  mode: expert
+  risk: read-only-debug
+  max_duration_seconds: 30
+  requires_param: true
+  params:
+    test_host_ip:
+      type: string
+      description: IP address of the test host

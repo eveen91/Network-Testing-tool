@@ -1,6 +1,4 @@
-Sure! Below is a comprehensive `README.md` that includes all necessary information for setting up and using your Network Validation Tool.
-
-````markdown
+````
 # Network Validation Tool
 
 ## Prerequisites
@@ -9,7 +7,6 @@ Sure! Below is a comprehensive `README.md` that includes all necessary informati
 2. **Netmiko/Paramiko**: Install these libraries using pip:
    ```sh
    pip install netmiko paramiko
-   ```
 ````
 
 3. **Dotenv**: Install the dotenv library for managing environment variables:
@@ -44,18 +41,27 @@ This will attempt to connect to all devices listed in the inventory and print wh
 1. **Pre-Change Baseline**:
 
    ```sh
-   python capture.py --ticket CHG-12345 --phase pre
+   python capture.py --ticket CHG-12345 --section 2,3,4 --params scenario_params.yaml
    ```
 
 2. **Post-Change Baseline**:
 
    ```sh
-   python capture.py --ticket CHG-12345 --phase post
+   python capture.py --ticket CHG-12345 --section 2,3,4 --params scenario_params.yaml
    ```
 
 3. **Optional Device Subset for Testing**:
+
    ```sh
-   python capture.py --ticket CHG-12345 --phase pre --devices CP-Cluster-01,Core-VSX-01
+   python capture.py --ticket CHG-12345 --section 2,3,4 --params scenario_params.yaml --devices CP-Cluster-01,Core-VSX-01
+   ```
+
+4. **Skip Manual Commands**:
+
+   If you want to skip manual-only commands:
+
+   ```sh
+   python capture.py --ticket CHG-12345 --section 2,3,4 --params scenario_params.yaml --skip-manual
    ```
 
 ## Troubleshooting
@@ -65,23 +71,27 @@ This will attempt to connect to all devices listed in the inventory and print wh
 
 ## Output Organization
 
-The captures will be stored in the `captures/<ticket#>/<phase>/<timestamp>/` directory structure. Each device's command output is saved as individual files and a consolidated file. The top-level `capture_manifest.json` contains metadata about each command execution.
+The captures will be stored in the `captures/<ticket#>/<section>/<timestamp>/` directory structure. Each device's command output is saved as individual files and a consolidated file. The top-level `capture_manifest.json` contains metadata about each command execution.
 
 ### Example Directory Structure
 
-```
+```plaintext
 captures/
 ├── CHG-12345/
-│   ├── pre/
+│   ├── 2/
 │   │   ├── 20230915-123045/
-│   │   │   ├── device1_BASE-CP-01_20230915-123045.txt
-│   │   │   ├── device1_BASE-CP-02_20230915-123045.txt
+│   │   │   ├── device1_T-01_20230915-123045.txt
+│   │   │   ├── device1_T-02_20230915-123045.txt
 │   │   │   └── device1_consolidated.txt
 │   │   └── capture_manifest.json
-│   └── post/
-│       ├── 20230915-130000/
-│       │   ├── device1_BASE-CP-01_20230915-130000.txt
-│       │   ├── device1_BASE-CP-02_20230915-130000.txt
+│   ├── 3/
+│   │   ├── 20230915-130000/
+│   │   │   ├── device1_T-06_20230915-130000.txt
+│   │   │   └── device1_consolidated.txt
+│   │   └── capture_manifest.json
+│   └── 4/
+│       ├── 20230915-140000/
+│       │   ├── device1_T-16_20230915-140000.txt
 │       │   └── device1_consolidated.txt
 │       └── capture_manifest.json
 ```
@@ -90,14 +100,15 @@ captures/
 
 The command library is organized in YAML files under the `commands/` directory:
 
-- `commands/checkpoint.yaml`: Contains Section 1 commands for Check Point devices.
-- `commands/aruba.yaml`: Contains Section 1 commands for Aruba devices.
+- `commands/checkpoint.yaml`: Contains Section 2, 3, and 4 commands for Check Point devices.
+- `commands/aruba.yaml`: Contains Section 2, 3, and 4 commands for Aruba devices.
 
 ## Architecture Overview
 
-```
+```plaintext
 test-automation/
 ├── inventory.yaml              # devices, roles, connection params (NO plaintext secrets)
+├── scenario_params.yaml          # parameters for command substitution
 ├── commands/
 │   ├── checkpoint.yaml         # command library, keyed by test ID / section
 │   └── aruba.yaml
@@ -107,7 +118,7 @@ test-automation/
 ├── capture.py                  # runs command set against a device, saves raw + structured output
 ├── README.md                   # project documentation
 └── captures/
-    └── <ticket#>/pre/, post/   # timestamped raw output
+    └── <ticket#>/2/, 3/, 4/   # timestamped raw output
 ```
 
 ## Project Constraints
@@ -126,5 +137,4 @@ Enjoy using your Network Validation Tool!
 
 ```
 
-Save this content to the `README.md` file in your project directory. This README now provides comprehensive instructions for setting up and using your network validation tool.
 ```

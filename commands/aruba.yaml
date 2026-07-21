@@ -153,3 +153,95 @@
   command: "show mac-address-table count"
   mode: cli
   risk: read-only-safe
+
+- test_id: T-04
+  section: "2.1"
+  description: "VSX sync state"
+  api: "vsx.status"
+  risk: read-only-safe
+
+- test_id: T-05
+  section: "2.1"
+  description: "Interface health"
+  api: "interfaces.summary"
+  risk: read-only-safe
+
+- test_id: T-06
+  section: "2.3"
+  description: "OSPF neighbors"
+  command: "show ip ospf neighbor"
+  mode: cli
+  risk: read-only-safe
+
+- test_id: T-07
+  section: "2.3"
+  description: "BGP summary"
+  command: "show bgp all summary"
+  mode: cli
+  risk: read-only-safe
+
+- test_id: T-07-evpn
+  section: "2.3"
+  description: "BGP L2VPN EVPN summary"
+  command: "show bgp l2vpn evpn summary"
+  mode: cli
+  risk: read-only-safe
+
+- test_id: T-08
+  section: "3.C"
+  description: "VLAN presence/tagging"
+  api: "vlans.all"
+  risk: read-only-safe
+  requires_param: true
+  params:
+    vlan_id:
+      type: string
+      description: VLAN ID
+
+- test_id: T-09
+  section: "3.C"
+  description: "MAC learning on VLAN"
+  command: "show mac-address vlan {vlan_id}"
+  mode: cli
+  risk: read-only-safe
+  requires_param: true
+  params:
+    vlan_id:
+      type: string
+      description: VLAN ID
+
+- test_id: T-10
+  section: "3.C"
+  description: "STP state on VLAN"
+  command: "show spanning-tree vlan {vlan_id}"
+  mode: cli
+  risk: read-only-safe
+  requires_param: true
+  params:
+    vlan_id:
+      type: string
+      description: VLAN ID
+
+- test_id: T-11
+  section: "3.E"
+  description: "Route to new subnet"
+  command: "show ip route {subnet}"
+  mode: cli
+  risk: read-only-safe
+  requires_param: true
+  params:
+    subnet:
+      type: string
+      description: New subnet
+
+- test_id: T-14
+  section: "3.D"
+  description: "VIP reachability from core"
+  command: "ping {vip} repetitions 5"
+  mode: cli
+  risk: read-only-safe
+  requires_param: true
+  params:
+    vip:
+      type: string
+      description: VIP address
