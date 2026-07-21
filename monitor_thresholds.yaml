@@ -8,7 +8,7 @@ devices:
     ip_address: "10.200.0.3"
 
 interval: 60
-webhook_url: #"https://hooks.slack.com/services/T00000000/B00000000/XXXXXXXXXXXXXXXXXXXXXXXX" # Optional, replace with your actual webhook URL
+webhook_url: #"" # Optional, replace with your actual webhook URL
 
 # Example of an asymmetric routing burst check configuration
 asymmetric_routing_burst_interval: 300
