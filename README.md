@@ -64,7 +64,7 @@ This will attempt to connect to all devices listed in the inventory and print wh
    python capture.py --ticket CHG-12345 --section 2,3,4 --params scenario_params.yaml --skip-manual
    ```
 
-## Parameters
+### Parameters
 
 The scenario_params.yaml file contains parameters that will be substituted into the commands. Example:
 
@@ -82,7 +82,7 @@ mgmt_isolation_port: 22
 internet_target: "8.8.8.8"
 ```
 
-## Manual Commands
+### Manual Commands
 
 Commands with risk: manual-only will prompt for interactive confirmation during the capture process.
 
@@ -96,7 +96,7 @@ python diff.py --left captures/CHG-12345/pre --right captures/CHG-12345/post
 
 This will generate a diff_report.json file with the comparison results.
 
-## Generating Human-Readable Summary (Phase 3)
+### Generating Human-Readable Summary (Phase 3)
 
 Generate Markdown Table:
 
