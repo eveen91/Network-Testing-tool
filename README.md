@@ -1,14 +1,13 @@
-````markdown
 # Network Validation Tool
 
 ## Prerequisites
 
 1. **Python 3.11+**: Ensure you have Python 3.11 or later installed.
 2. **Netmiko/Paramiko**: Install these libraries using pip:
+
    ```sh
    pip install netmiko paramiko
    ```
-````
 
 3. **Dotenv**: Install the dotenv library for managing environment variables:
    ```sh
@@ -219,8 +218,3 @@ test-automation/
 If you encounter any issues or have questions, please reach out to the team.
 
 Enjoy using your Network Validation Tool!
-
-```
-
-### Summary
-```
