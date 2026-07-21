@@ -1,0 +1,9 @@
+global:
+  - "uptime.*"
+  - '\d{2}:\d{2}:\d{2}' # timestamps
+  - "elapsed.*"
+  - '\d+ (packets?|bytes?) (received|transmitted)' # counters that always change
+
+per_command:
+  T-16:
+    - 'age \d+' # connection-table entry age, always differs

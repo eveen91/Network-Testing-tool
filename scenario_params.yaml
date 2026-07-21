@@ -1,0 +1,11 @@
+vlan_id: 200
+subnet: "10.200.0.0/24"
+vip: "10.200.0.1"
+cp_member_1: "10.200.0.2"
+cp_member_2: "10.200.0.3"
+test_host_ip: "10.200.0.50"
+dmz_db_target: "10.10.50.12"
+dmz_db_port: 3306
+mgmt_isolation_target: "10.0.0.15"
+mgmt_isolation_port: 22
+internet_target: "8.8.8.8"

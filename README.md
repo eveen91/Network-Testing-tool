@@ -64,6 +64,28 @@ This will attempt to connect to all devices listed in the inventory and print wh
    python capture.py --ticket CHG-12345 --section 2,3,4 --params scenario_params.yaml --skip-manual
    ```
 
+## Parameters
+
+The scenario_params.yaml file contains parameters that will be substituted into the commands. Example:
+
+```yaml
+vlan_id: 200
+subnet: "10.200.0.0/24"
+vip: "10.200.0.1"
+cp_member_1: "10.200.0.2"
+cp_member_2: "10.200.0.3"
+test_host_ip: "10.200.0.50"
+dmz_db_target: "10.10.50.12"
+dmz_db_port: 3306
+mgmt_isolation_target: "10.0.0.15"
+mgmt_isolation_port: 22
+internet_target: "8.8.8.8"
+```
+
+## Manual Commands
+
+Commands with risk: manual-only will prompt for interactive confirmation during the capture process.
+
 ## Generating Diff Report (Phase 3)
 
 Compare Two Capture Runs:
@@ -74,13 +96,15 @@ python diff.py --left captures/CHG-12345/pre --right captures/CHG-12345/post
 
 This will generate a diff_report.json file with the comparison results.
 
-Generating Human-Readable Summary (Phase 3)
+## Generating Human-Readable Summary (Phase 3)
+
 Generate Markdown Table:
 
 ```sh
 python report_summary.py --report diff_report.json
-This will print a human-readable summary in Markdown format, which is suitable for quick skimming before further analysis.
 ```
+
+This will print a human-readable summary in Markdown format, which is suitable for quick skimming before further analysis.
 
 ## Troubleshooting
 
@@ -127,6 +151,7 @@ The command library is organized in YAML files under the `commands/` directory:
 test-automation/
 ├── inventory.yaml              # devices, roles, connection params (NO plaintext secrets)
 ├── scenario_params.yaml          # parameters for command substitution
+├── noise_filters.yaml            # noise filter patterns for CLI text diffing
 ├── commands/
 │   ├── checkpoint.yaml         # command library, keyed by test ID / section
 │   └── aruba.yaml
@@ -134,6 +159,8 @@ test-automation/
 │   ├── checkpoint_conn.py      # SSH session handling for Gaia clish + expert mode
 │   └── aruba_conn.py           # Aruba AOS-CX (REST API preferred, CLI fallback)
 ├── capture.py                  # runs command set against a device, saves raw + structured output
+├── diff.py                     # compares two capture runs and reports differences
+├── report_summary.py             # generates human-readable summary from diff report
 ├── README.md                   # project documentation
 └── captures/
     └── <ticket#>/2/, 3/, 4/   # timestamped raw output
@@ -149,7 +176,7 @@ test-automation/
 
 ## Contact
 
-If you encounter any issues or have questions, please reach out to the team at [email@example.com].
+If you encounter any issues or have questions, please reach out to the team.
 
 Enjoy using your Network Validation Tool!
 
