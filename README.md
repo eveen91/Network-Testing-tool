@@ -1,4 +1,4 @@
-````
+````markdown
 # Network Validation Tool
 
 ## Prerequisites
@@ -7,6 +7,7 @@
 2. **Netmiko/Paramiko**: Install these libraries using pip:
    ```sh
    pip install netmiko paramiko
+   ```
 ````
 
 3. **Dotenv**: Install the dotenv library for managing environment variables:
@@ -66,7 +67,7 @@ This will attempt to connect to all devices listed in the inventory and print wh
 
 ### Parameters
 
-The scenario_params.yaml file contains parameters that will be substituted into the commands. Example:
+The `scenario_params.yaml` file contains parameters that will be substituted into the commands. Example:
 
 ```yaml
 vlan_id: 200
@@ -94,7 +95,7 @@ Compare Two Capture Runs:
 python diff.py --left captures/CHG-12345/pre --right captures/CHG-12345/post
 ```
 
-This will generate a diff_report.json file with the comparison results.
+This will generate a `diff_report.json` file with the comparison results.
 
 ### Generating Human-Readable Summary (Phase 3)
 
@@ -105,6 +106,43 @@ python report_summary.py --report diff_report.json
 ```
 
 This will print a human-readable summary in Markdown format, which is suitable for quick skimming before further analysis.
+
+## Evaluating Test Results (Phase 4)
+
+Evaluate test results from the capture manifests and generate an evaluation report:
+
+```sh
+python evaluate.py --ticket CHG-12345
+```
+
+This will generate an `evaluation_report.json` file with verdicts for each test ID per device.
+
+## Generating Final Reports and PIR Package (Phase 5)
+
+Generate HTML and Markdown reports, and create a PIR package with all necessary files:
+
+```sh
+python report.py --ticket CHG-12345
+```
+
+This will generate `report_CHG-12345.html` and `report_CHG-12345.md`, as well as a PIR package folder containing the following:
+
+- HTML and Markdown reports.
+- `evaluation_report.json`.
+- `diff_report.json`.
+- Both pre and post phase `capture_manifest.json` files.
+- Consolidated baseline text files.
+
+### Report Summary
+
+The top of both reports will show a plain-language summary line with counts of pass, fail, and manual-review-required tests. If the fail count is greater than 0 or any test has a status of only-in-pre/only-in-post in the `diff_report.json`, there will be a clearly visible banner at the top stating that review is required before closing the change.
+
+### Command Library
+
+The command library is organized in YAML files under the `commands/` directory:
+
+- `commands/checkpoint.yaml`: Contains Section 2, 3, and 4 commands for Check Point devices.
+- `commands/aruba.yaml`: Contains Section 2, 3, and 4 commands for Aruba devices.
 
 ## Troubleshooting
 
@@ -120,30 +158,30 @@ The captures will be stored in the `captures/<ticket#>/<section>/<timestamp>/` d
 ```plaintext
 captures/
 ├── CHG-12345/
-│   ├── 2/
+│   ├── pre/
 │   │   ├── 20230915-123045/
-│   │   │   ├── device1_T-01_20230915-123045.txt
-│   │   │   ├── device1_T-02_20230915-123045.txt
-│   │   │   └── device1_consolidated.txt
+│   │   │   ├── CP-Cluster-01_T-01_20230915-123045.txt
+│   │   │   ├── CP-Cluster-01_T-02_20230915-123045.txt
+│   │   │   └── CP-Cluster-01_consolidated.txt
 │   │   └── capture_manifest.json
-│   ├── 3/
+│   ├── post/
 │   │   ├── 20230915-130000/
-│   │   │   ├── device1_T-06_20230915-130000.txt
-│   │   │   └── device1_consolidated.txt
+│   │   │   ├── CP-Cluster-01_T-06_20230915-130000.txt
+│   │   │   └── CP-Cluster-01_consolidated.txt
 │   │   └── capture_manifest.json
-│   └── 4/
-│       ├── 20230915-140000/
-│       │   ├── device1_T-16_20230915-140000.txt
-│       │   └── device1_consolidated.txt
-│       └── capture_manifest.json
+└── CHG-12345/
+    ├── pre/
+    │   ├── 20230915-123045/
+    │   │   ├── Core-VSX-01_T-01_20230915-123045.txt
+    │   │   ├── Core-VSX-01_T-02_20230915-123045.txt
+    │   │   └── Core-VSX-01_consolidated.txt
+    │   └── capture_manifest.json
+    └── post/
+        ├── 20230915-130000/
+        │   ├── Core-VSX-01_T-06_20230915-130000.txt
+        │   │   └── Core-VSX-01_consolidated.txt
+        │   └── capture_manifest.json
 ```
-
-### Command Library
-
-The command library is organized in YAML files under the `commands/` directory:
-
-- `commands/checkpoint.yaml`: Contains Section 2, 3, and 4 commands for Check Point devices.
-- `commands/aruba.yaml`: Contains Section 2, 3, and 4 commands for Aruba devices.
 
 ## Architecture Overview
 
@@ -161,9 +199,11 @@ test-automation/
 ├── capture.py                  # runs command set against a device, saves raw + structured output
 ├── diff.py                     # compares two capture runs and reports differences
 ├── report_summary.py             # generates human-readable summary from diff report
+├── evaluate.py                 # evaluates test results based on risk levels and patterns
+├── report.py                   # generates HTML and Markdown reports, creates PIR package
 ├── README.md                   # project documentation
 └── captures/
-    └── <ticket#>/2/, 3/, 4/   # timestamped raw output
+    └── <ticket#>/pre/, post/   # timestamped raw output
 ```
 
 ## Project Constraints
@@ -182,4 +222,5 @@ Enjoy using your Network Validation Tool!
 
 ```
 
+### Summary
 ```
