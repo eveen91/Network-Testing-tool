@@ -64,6 +64,24 @@ This will attempt to connect to all devices listed in the inventory and print wh
    python capture.py --ticket CHG-12345 --section 2,3,4 --params scenario_params.yaml --skip-manual
    ```
 
+## Generating Diff Report (Phase 3)
+
+Compare Two Capture Runs:
+
+```sh
+python diff.py --left captures/CHG-12345/pre --right captures/CHG-12345/post
+```
+
+This will generate a diff_report.json file with the comparison results.
+
+Generating Human-Readable Summary (Phase 3)
+Generate Markdown Table:
+
+```sh
+python report_summary.py --report diff_report.json
+This will print a human-readable summary in Markdown format, which is suitable for quick skimming before further analysis.
+```
+
 ## Troubleshooting
 
 - **Connection Failures**: Ensure that SSH is enabled on the devices and that the IP addresses/hostnames, login credentials, and SSH keys are correct.
