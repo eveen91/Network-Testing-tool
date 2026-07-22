@@ -26,16 +26,9 @@ def load_scenario_params(filepath):
 
 def render_command(command_template, params):
     """
-    FIX #3: previously used jinja2.Template(...).render(params), but
-    commands/*.yaml uses single-brace placeholders like "{vlan_id}" --
-    Jinja2 only substitutes double-brace "{{ vlan_id }}", so every
-    parameterized command was previously sent to devices with the literal,
-    unsubstituted "{vlan_id}" text still in it.
-
-    The YAML's single-brace syntax IS valid Python str.format() syntax, so
-    the fix is to use str.format() instead -- no template engine needed.
-    This also raises a clear error when a command references a parameter
-    that scenario_params.yaml doesn't define, instead of silently doing
+    FIX #3: uses str.format() (matching the YAML's single-brace "{vlan_id}"
+    syntax) instead of Jinja2, which only substitutes double-brace syntax.
+    Raises a clear error on a missing param instead of silently doing
     nothing.
     """
     if "{" not in command_template:
@@ -64,7 +57,6 @@ def run_command(conn, command, params=None, mode="cli"):
     except ValueError as e:
         print(str(e))
         return False, str(e)
-
     try:
         return conn.run(rendered, mode=mode)
     except Exception as e:
@@ -78,13 +70,11 @@ def run_debug_command(conn, command, params=None, mode="expert", max_duration_se
     except ValueError as e:
         print(str(e))
         return False, str(e), True
-
     try:
         return conn.send_command_timing_debug(
             rendered, max_duration_seconds=max_duration_seconds, mode=mode
         )
     except TypeError:
-        # ArubaConnection's debug method doesn't take a `mode` kwarg.
         return conn.send_command_timing_debug(
             rendered, max_duration_seconds=max_duration_seconds
         )
@@ -104,7 +94,6 @@ def consolidate_outputs(device_name, output_dir, timestamp):
         f for f in os.listdir(output_dir)
         if device_name in f and f.endswith(".txt") and "consolidated" not in f
     ]
-
     with open(consolidated_file, 'w') as file:
         for cmd_file in sorted(command_files):
             with open(os.path.join(output_dir, cmd_file), 'r') as cmd_f:
@@ -114,31 +103,34 @@ def consolidate_outputs(device_name, output_dir, timestamp):
                 file.write("\n\n")
 
 
-def handle_manual_command(manifest, test_id, description=""):
+def handle_manual_command(manifest, device_name, test_id, section="", description=""):
+    """
+    FIX #5: previously wrote to the flat, ticket-wide manifest["per_command"]
+    dict, keyed only by test_id. Now writes into
+    manifest["per_device"][device_name]["commands"][test_id], consistent
+    with every other command result -- see capture_pre_post() below for why
+    this matters (two Check Point cluster members, or two VSX nodes, running
+    the same test_id would otherwise silently overwrite each other's
+    result).
+    """
     prompt = f"{test_id} — {description or 'Manual execution required'}. " \
              f"Confirm executed manually and add notes, or type 'skip': "
     response = input(prompt)
+    entry = {"section": section, "description": description}
     if response.strip().lower() == "skip":
-        manifest["per_command"][test_id] = {"status": "skipped", "reason": "manual execution skipped"}
+        entry.update({"status": "skipped", "reason": "manual execution skipped"})
     else:
-        manifest["per_command"][test_id] = {
-            "status": "executed manually",
-            "notes": response
-        }
+        entry.update({"status": "executed manually", "notes": response})
+    manifest["per_device"][device_name]["commands"][test_id] = entry
 
 
 def capture_pre_post(ticket_number, phase, sections, devices=None, params=None, skip_manual=False):
     """
-    FIX #4:
-      - `phase` (required: "pre" or "post") is now a real, distinct part of
-        the output path. The previous version always wrote to a folder
-        literally named "baseline" regardless of phase, so downstream tools
-        that looked for captures/<ticket>/pre or captures/<ticket>/post
-        could never find anything.
-      - consolidate_outputs() is now called once per device, inside the
-        device loop, instead of once after the loop (which meant every
-        device except the last one processed silently never got a
-        consolidated file).
+    FIX #4: `phase` ("pre"/"post") is now a real part of the output path
+    (captures/<ticket>/<phase>/<timestamp>/...), instead of always writing
+    to a folder literally named "baseline". consolidate_outputs() now runs
+    once per device inside the loop, not once after it using leftover loop
+    variables.
     """
     if not os.path.exists("captures"):
         os.makedirs("captures")
@@ -158,8 +150,16 @@ def capture_pre_post(ticket_number, phase, sections, devices=None, params=None, 
         "phase": phase,
         "sections": sections,
         "start_time": datetime.now().isoformat(),
-        "per_command": {},
         "per_device": {}
+        # FIX #5: the previous schema also had a flat, top-level
+        # "per_command" dict keyed only by test_id and shared across every
+        # device in the run. Since ClusterXL and VSX are inherently pairs of
+        # devices, two devices running the same test_id (e.g. two CP cluster
+        # members both running T-01) would silently overwrite each other's
+        # result in that shared dict -- only the raw per-device .txt files
+        # on disk were safe; the manifest's convenience metadata was not.
+        # All command results now live under per_device[<name>]["commands"],
+        # so there is no shared key space between devices.
     }
 
     for device in inventory:
@@ -172,7 +172,11 @@ def capture_pre_post(ticket_number, phase, sections, devices=None, params=None, 
         if not os.path.exists(output_dir):
             os.makedirs(output_dir)
 
-        manifest["per_device"][device_name] = {"connection_status": "connected"}
+        manifest["per_device"][device_name] = {
+            "role": device.get("role"),
+            "connection_status": "connected",
+            "commands": {}
+        }
 
         try:
             if device['role'] == "cp-cluster-member":
@@ -203,11 +207,12 @@ def capture_pre_post(ticket_number, phase, sections, devices=None, params=None, 
 
                 if risk == "manual-only":
                     if skip_manual:
-                        manifest["per_command"][test_id] = {
+                        manifest["per_device"][device_name]["commands"][test_id] = {
+                            "section": section, "description": description,
                             "status": "skipped", "reason": "marked as manual-only"
                         }
                     else:
-                        handle_manual_command(manifest, test_id, description)
+                        handle_manual_command(manifest, device_name, test_id, section, description)
                     continue
 
                 if risk == "read-only-debug" and api is None:
@@ -221,12 +226,16 @@ def capture_pre_post(ticket_number, phase, sections, devices=None, params=None, 
                     output_success, raw_output = run_command(conn, command, params=params, mode=mode)
                     truncated = False
 
-                manifest["per_command"][test_id] = {
+                output_file = save_output(output_dir, device_name, test_id, timestamp, raw_output)
+
+                manifest["per_device"][device_name]["commands"][test_id] = {
+                    "section": section,
+                    "description": description,
+                    "risk": risk,
                     "status": "captured successfully" if output_success else "attempted but failed",
                     "truncated": truncated,
+                    "output_file": output_file,
                 }
-
-                save_output(output_dir, device_name, test_id, timestamp, raw_output)
 
             consolidate_outputs(device_name, output_dir, timestamp)
             conn.disconnect()
