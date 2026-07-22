@@ -4,6 +4,7 @@ devices:
     ip: "10.226.199.4"
     login: "admin"
     password_env_var: "CHECKPOINT_DEVICE1_PASSWORD"
+    expert_password_env_var: "CHECKPOINT_DEVICE1_EXPERT_PASSWORD" # NEW — add this line
     ssh_key_path: "~/.ssh/id_rsa"
 
   - name: "device2"

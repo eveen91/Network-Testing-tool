@@ -73,7 +73,7 @@
 - test_id: BASE-CP-11
   section: "1.1"
   description: "Routing (clish, native)"
-  command: 'clish -c "show routing"'
+  command: 'clish -c "show route"'
   mode: expert
   risk: read-only-safe
 

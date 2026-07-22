@@ -1,64 +1,110 @@
 import os
 import json
 import yaml
-import time
 from datetime import datetime
 from connectors.checkpoint_conn import CheckPointConnection
 from connectors.aruba_conn import ArubaConnection
-from jinja2 import Template
 
-# Load inventory from YAML file
+
 def load_inventory(filepath):
     with open(filepath, 'r') as file:
         inventory = yaml.safe_load(file)
     return inventory['devices']
 
-# Load commands from YAML file
+
 def load_commands(filepath):
     with open(filepath, 'r') as file:
         commands = yaml.safe_load(file)
-    return commands
+    return commands or []
 
-# Load scenario parameters from YAML file
+
 def load_scenario_params(filepath):
     with open(filepath, 'r') as file:
         scenario_params = yaml.safe_load(file)
-    return scenario_params
+    return scenario_params or {}
 
-# Run an API call on the device
+
+def render_command(command_template, params):
+    """
+    FIX #3: previously used jinja2.Template(...).render(params), but
+    commands/*.yaml uses single-brace placeholders like "{vlan_id}" --
+    Jinja2 only substitutes double-brace "{{ vlan_id }}", so every
+    parameterized command was previously sent to devices with the literal,
+    unsubstituted "{vlan_id}" text still in it.
+
+    The YAML's single-brace syntax IS valid Python str.format() syntax, so
+    the fix is to use str.format() instead -- no template engine needed.
+    This also raises a clear error when a command references a parameter
+    that scenario_params.yaml doesn't define, instead of silently doing
+    nothing.
+    """
+    if "{" not in command_template:
+        return command_template
+    try:
+        return command_template.format(**(params or {}))
+    except KeyError as e:
+        missing_key = str(e).strip("'\"")
+        raise ValueError(
+            f"Command '{command_template}' requires parameter '{missing_key}', "
+            f"which is not defined in the scenario params file."
+        )
+
+
 def run_api_call(conn, api):
+    if not hasattr(conn, "run_api"):
+        msg = f"Connector for this device does not support API calls (api='{api}')."
+        print(msg)
+        return False, msg
+    return conn.run_api(api)
+
+
+def run_command(conn, command, params=None, mode="cli"):
     try:
-        response = conn.send_command_timing(f"show {api}")
-        return True, response
-    except Exception as e:
-        print(f"Failed to execute API {api}: {e}")
+        rendered = render_command(command, params) if params else command
+    except ValueError as e:
+        print(str(e))
         return False, str(e)
 
-# Run a command on the device with optional parameters
-def run_command(conn, command, params=None):
     try:
-        if params:
-            template = Template(command)
-            command_with_params = template.render(params)
-            output = conn.send_command_timing(command_with_params)
-        else:
-            output = conn.send_command_timing(command)
-        return True, output
+        return conn.run(rendered, mode=mode)
     except Exception as e:
-        print(f"Failed to execute {command}: {e}")
+        print(f"Failed to execute {rendered}: {e}")
         return False, str(e)
 
-# Save the raw output of a command to a file
+
+def run_debug_command(conn, command, params=None, mode="expert", max_duration_seconds=30):
+    try:
+        rendered = render_command(command, params) if params else command
+    except ValueError as e:
+        print(str(e))
+        return False, str(e), True
+
+    try:
+        return conn.send_command_timing_debug(
+            rendered, max_duration_seconds=max_duration_seconds, mode=mode
+        )
+    except TypeError:
+        # ArubaConnection's debug method doesn't take a `mode` kwarg.
+        return conn.send_command_timing_debug(
+            rendered, max_duration_seconds=max_duration_seconds
+        )
+
+
 def save_output(output_dir, device_name, test_id, timestamp, raw_output):
-    file_path = os.path.join(output_dir, f"{device_name}_{test_id}_{timestamp}.txt")
+    file_name = f"{device_name}_{test_id}_{timestamp}.txt"
+    file_path = os.path.join(output_dir, file_name)
     with open(file_path, 'w') as file:
         file.write(raw_output)
+    return file_name
 
-# Consolidate outputs of all commands for a device into a single file
+
 def consolidate_outputs(device_name, output_dir, timestamp):
     consolidated_file = os.path.join(output_dir, f"{device_name}_consolidated.txt")
-    command_files = [f for f in os.listdir(output_dir) if device_name in f and ".txt" in f]
-    
+    command_files = [
+        f for f in os.listdir(output_dir)
+        if device_name in f and f.endswith(".txt") and "consolidated" not in f
+    ]
+
     with open(consolidated_file, 'w') as file:
         for cmd_file in sorted(command_files):
             with open(os.path.join(output_dir, cmd_file), 'r') as cmd_f:
@@ -67,10 +113,12 @@ def consolidate_outputs(device_name, output_dir, timestamp):
                 file.write(content)
                 file.write("\n\n")
 
-# Handle manual-only commands
-def handle_manual_command(manifest, test_id):
-    response = input(f"{test_id} — Manual execution required. Confirm executed manually and add notes, or type skip: ")
-    if response.lower() == "skip":
+
+def handle_manual_command(manifest, test_id, description=""):
+    prompt = f"{test_id} — {description or 'Manual execution required'}. " \
+             f"Confirm executed manually and add notes, or type 'skip': "
+    response = input(prompt)
+    if response.strip().lower() == "skip":
         manifest["per_command"][test_id] = {"status": "skipped", "reason": "manual execution skipped"}
     else:
         manifest["per_command"][test_id] = {
@@ -78,23 +126,36 @@ def handle_manual_command(manifest, test_id):
             "notes": response
         }
 
-# Main function to capture baseline data
-def capture_pre_post(ticket_number, sections, devices=None, params=None, skip_manual=False):
+
+def capture_pre_post(ticket_number, phase, sections, devices=None, params=None, skip_manual=False):
+    """
+    FIX #4:
+      - `phase` (required: "pre" or "post") is now a real, distinct part of
+        the output path. The previous version always wrote to a folder
+        literally named "baseline" regardless of phase, so downstream tools
+        that looked for captures/<ticket>/pre or captures/<ticket>/post
+        could never find anything.
+      - consolidate_outputs() is now called once per device, inside the
+        device loop, instead of once after the loop (which meant every
+        device except the last one processed silently never got a
+        consolidated file).
+    """
     if not os.path.exists("captures"):
         os.makedirs("captures")
-    
+
     timestamp = datetime.now().strftime("%Y%m%d-%H%M%S")
-    run_dir = os.path.join("captures", ticket_number, "baseline", timestamp)
-    
+    run_dir = os.path.join("captures", ticket_number, phase, timestamp)
+
     if not os.path.exists(run_dir):
         os.makedirs(run_dir)
-    
+
     inventory = load_inventory("inventory.yaml")
     commands_checkpoint = load_commands("commands/checkpoint.yaml")
     commands_aruba = load_commands("commands/aruba.yaml")
 
     manifest = {
         "ticket": ticket_number,
+        "phase": phase,
         "sections": sections,
         "start_time": datetime.now().isoformat(),
         "per_command": {},
@@ -104,10 +165,10 @@ def capture_pre_post(ticket_number, sections, devices=None, params=None, skip_ma
     for device in inventory:
         if devices and device['name'] not in devices:
             continue
-        
+
         device_name = device['name']
         output_dir = os.path.join(run_dir, device_name)
-        
+
         if not os.path.exists(output_dir):
             os.makedirs(output_dir)
 
@@ -135,49 +196,71 @@ def capture_pre_post(ticket_number, sections, devices=None, params=None, skip_ma
                 api = cmd.get("api", None)
                 mode = cmd.get("mode", "cli")
                 risk = cmd.get("risk", "read-only-safe")
+                max_duration = cmd.get("max_duration_seconds", 30)
 
                 if section not in sections:
                     continue
 
-                if skip_manual and risk == "manual-only":
-                    manifest["per_command"][test_id] = {"status": "skipped", "reason": "marked as manual-only"}
+                if risk == "manual-only":
+                    if skip_manual:
+                        manifest["per_command"][test_id] = {
+                            "status": "skipped", "reason": "marked as manual-only"
+                        }
+                    else:
+                        handle_manual_command(manifest, test_id, description)
                     continue
 
                 if risk == "read-only-debug" and api is None:
-                    output_success, raw_output = conn.send_command_timing_debug(command)
+                    output_success, raw_output, truncated = run_debug_command(
+                        conn, command, params=params, mode=mode, max_duration_seconds=max_duration
+                    )
+                elif api:
+                    output_success, raw_output = run_api_call(conn, api)
+                    truncated = False
                 else:
-                    output_success, raw_output = run_api_call(conn, api) if api else run_command(conn, command, params=params)
+                    output_success, raw_output = run_command(conn, command, params=params, mode=mode)
+                    truncated = False
 
                 manifest["per_command"][test_id] = {
                     "status": "captured successfully" if output_success else "attempted but failed",
-                    "output": raw_output
+                    "truncated": truncated,
                 }
 
                 save_output(output_dir, device_name, test_id, timestamp, raw_output)
 
+            consolidate_outputs(device_name, output_dir, timestamp)
             conn.disconnect()
         except Exception as e:
             manifest["per_device"][device_name]["connection_status"] = "disconnected with error"
             print(f"Error processing {device['name']}: {e}")
 
-    consolidate_outputs(device_name, output_dir, timestamp)
+    manifest["end_time"] = datetime.now().isoformat()
     manifest_file = os.path.join(run_dir, "capture_manifest.json")
     with open(manifest_file, 'w') as file:
         json.dump(manifest, file, indent=4)
 
     print(f"Capture completed. Manifest saved to {manifest_file}")
+    return manifest_file
+
 
 if __name__ == "__main__":
     import argparse
     parser = argparse.ArgumentParser(description="Run network baseline capture.")
     parser.add_argument("--ticket", required=True, help="Ticket number (e.g., CHG-12345)")
+    parser.add_argument("--phase", required=True, choices=["pre", "post"],
+                         help="Whether this is the pre-change or post-change capture run")
     parser.add_argument("--section", required=True, help="Comma-separated list of sections to run")
     parser.add_argument("--params", required=True, help="Path to scenario_params.yaml file")
+    parser.add_argument("--devices", required=False, default=None,
+                         help="Optional comma-separated subset of device names to run against")
     parser.add_argument("--skip-manual", action='store_true', help="Skip manual-only commands")
-    
+
     args = parser.parse_args()
     section_list = args.section.split(",")
     devices_list = None if not args.devices else args.devices.split(",")
     params = load_scenario_params(args.params)
 
-    capture_pre_post(args.ticket, section_list, devices=devices_list, params=params, skip_manual=args.skip_manual)
+    capture_pre_post(
+        args.ticket, args.phase, section_list,
+        devices=devices_list, params=params, skip_manual=args.skip_manual
+    )
