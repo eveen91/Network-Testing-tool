@@ -146,6 +146,8 @@
   command: "cphaprob stat"
   mode: expert
   risk: read-only-safe
+  pass_pattern: "Active|Standby" #new patterns for pass/fail to avoid false positives
+  fail_pattern: "problem|Down"
 
 - test_id: T-02
   section: "2.1"
