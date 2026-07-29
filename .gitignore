@@ -1,3 +1,37 @@
+# --- Fix #10: security gap from the original review ---
+# The original .gitignore only excluded /.vscode, /archi.txt, and itself.
+# .env was NOT excluded (currently holds placeholder text, but nothing
+# stopped a real password being committed the moment someone filled it in).
+# inventory.yaml and monitor_thresholds.yaml contain real internal
+# management IPs and were committed to a public repo. Generated capture
+# output can contain real device state, IPs, and topology detail and was
+# never excluded either. All of that is fixed below.
+
+# Credentials -- never track this file. Copy .env.example to .env locally.
+.env
+
+# Real device inventory / thresholds -- contain real IPs. Track the
+# .example versions instead and keep your real, filled-in copies local-only.
+inventory.yaml
+monitor_thresholds.yaml
+
+# Generated capture output, reports, and logs
+captures/
+diff_report*.json
+evaluation_report.json
+report_*.html
+report_*.md
+pir_package_*/
+triggers.log
+monitor_logs/
+
+# Standard Python housekeeping
+__pycache__/
+*.pyc
+.pytest_cache/
+venv/
+.venv/
+
+# Editor / misc (kept from the original file)
 /.vscode
 /archi.txt
-/.gitignore

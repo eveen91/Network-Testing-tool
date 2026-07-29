@@ -1,0 +1,34 @@
+# Copy this file to monitor_thresholds.yaml and fill in your real device
+# details. monitor_thresholds.yaml itself is gitignored (see .gitignore
+# fix #10) so real device IPs never end up committed again.
+
+devices:
+  - name: "cp_member_1"
+    role: "cp-cluster-member"
+    ip: "203.0.113.10"          # RFC 5737 placeholder -- replace with real IP
+    login: "admin"
+    password_env_var: "CHECKPOINT_DEVICE1_PASSWORD"
+    expert_password_env_var: "CHECKPOINT_DEVICE1_EXPERT_PASSWORD"
+    ssh_key_path: "~/.ssh/id_rsa"
+
+  - name: "aruba_vsx_node"
+    role: "aruba-vsx-node"
+    ip: "203.0.113.20"
+    login: "admin"
+    password_env_var: "ARUBA_DEVICE1_PASSWORD"
+    ssh_key_path: "~/.ssh/id_aruba"
+
+interval: 60
+webhook_url: ""
+
+thresholds:
+  clusterxl_flap_max_changes: 2
+  clusterxl_flap_window_seconds: 120
+  neighbor_loss_grace_seconds: 180
+  vip_packet_loss_pct_threshold: 0.5
+  vip_latency_increase_pct_threshold: 50
+  interface_error_pct_threshold: 1.0
+  interface_consecutive_flap_polls: 2
+
+asymmetric_routing_burst_interval_seconds: 300
+asymmetric_routing_burst_max_duration_seconds: 10

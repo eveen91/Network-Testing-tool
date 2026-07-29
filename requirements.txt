@@ -1,0 +1,13 @@
+# Fix #10: the original README told users to `pip install netmiko paramiko
+# python-dotenv`, but the actual codebase also imports PyYAML (every file
+# that does `import yaml`) and requests (monitor.py's webhook alerting) --
+# neither was ever listed anywhere. A fresh clone following the README
+# exactly would hit ModuleNotFoundError on the very first run. This file
+# is the single source of truth for dependencies going forward -- install
+# with `pip install -r requirements.txt`.
+
+netmiko>=4.3.0
+paramiko>=3.0.0
+PyYAML>=6.0
+python-dotenv>=1.0.0
+requests>=2.31.0
