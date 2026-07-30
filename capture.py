@@ -26,10 +26,9 @@ def load_scenario_params(filepath):
 
 def render_command(command_template, params):
     """
-    FIX #3: uses str.format() (matching the YAML's single-brace "{vlan_id}"
-    syntax) instead of Jinja2, which only substitutes double-brace syntax.
-    Raises a clear error on a missing param instead of silently doing
-    nothing.
+    Uses str.format() (matching the YAML's single-brace "{vlan_id}" syntax)
+    instead of Jinja2, which only substitutes double-brace syntax. Raises a
+    clear error on a missing param instead of silently doing nothing.
     """
     if "{" not in command_template:
         return command_template
@@ -105,13 +104,10 @@ def consolidate_outputs(device_name, output_dir, timestamp):
 
 def handle_manual_command(manifest, device_name, test_id, section="", description=""):
     """
-    FIX #5: previously wrote to the flat, ticket-wide manifest["per_command"]
-    dict, keyed only by test_id. Now writes into
+    Per-device manual-only entries (if any ever appear directly inside
+    commands/checkpoint.yaml or commands/aruba.yaml) write into
     manifest["per_device"][device_name]["commands"][test_id], consistent
-    with every other command result -- see capture_pre_post() below for why
-    this matters (two Check Point cluster members, or two VSX nodes, running
-    the same test_id would otherwise silently overwrite each other's
-    result).
+    with every other command result.
     """
     prompt = f"{test_id} — {description or 'Manual execution required'}. " \
              f"Confirm executed manually and add notes, or type 'skip': "
@@ -124,13 +120,38 @@ def handle_manual_command(manifest, device_name, test_id, section="", descriptio
     manifest["per_device"][device_name]["commands"][test_id] = entry
 
 
+def handle_ticket_level_manual_command(manifest, test_id, section="", description=""):
+    """
+    commands/manual.yaml entries (T-22 'planned failover test', T-13-review
+    'SmartConsole anti-spoofing log review') were never loaded by
+    capture.py at all -- they were completely inert, regardless of what
+    --section list was requested.
+
+    These entries are deliberately NOT per-device: a planned failover test
+    applies to the change as a whole, not to one specific cluster member,
+    so attaching it to an arbitrary single device's commands dict would be
+    architecturally wrong (which device would "own" it? both? neither?).
+    They're stored under manifest["manual_confirmations"] instead -- a
+    ticket-level bucket, prompted once per capture run, independent of the
+    per-device loop and independent of whether any device connection
+    succeeded or failed.
+    """
+    prompt = f"{test_id} — {description or 'Manual execution required'}. " \
+             f"Confirm executed manually and add notes, or type 'skip': "
+    response = input(prompt)
+    entry = {"section": section, "description": description}
+    if response.strip().lower() == "skip":
+        entry.update({"status": "skipped", "reason": "manual execution skipped"})
+    else:
+        entry.update({"status": "executed manually", "notes": response})
+    manifest["manual_confirmations"][test_id] = entry
+
+
 def capture_pre_post(ticket_number, phase, sections, devices=None, params=None, skip_manual=False):
     """
-    FIX #4: `phase` ("pre"/"post") is now a real part of the output path
-    (captures/<ticket>/<phase>/<timestamp>/...), instead of always writing
-    to a folder literally named "baseline". consolidate_outputs() now runs
-    once per device inside the loop, not once after it using leftover loop
-    variables.
+    `phase` ("pre"/"post") is a real, distinct part of the output path
+    (captures/<ticket>/<phase>/<timestamp>/...). consolidate_outputs() runs
+    once per device, inside the device loop.
     """
     if not os.path.exists("captures"):
         os.makedirs("captures")
@@ -144,22 +165,25 @@ def capture_pre_post(ticket_number, phase, sections, devices=None, params=None, 
     inventory = load_inventory("inventory.yaml")
     commands_checkpoint = load_commands("commands/checkpoint.yaml")
     commands_aruba = load_commands("commands/aruba.yaml")
+    # Previously never loaded at all -- T-22 and T-13-review were
+    # completely inert regardless of requested --section.
+    commands_manual = load_commands("commands/manual.yaml")
 
     manifest = {
         "ticket": ticket_number,
         "phase": phase,
         "sections": sections,
         "start_time": datetime.now().isoformat(),
-        "per_device": {}
-        # FIX #5: the previous schema also had a flat, top-level
-        # "per_command" dict keyed only by test_id and shared across every
-        # device in the run. Since ClusterXL and VSX are inherently pairs of
-        # devices, two devices running the same test_id (e.g. two CP cluster
-        # members both running T-01) would silently overwrite each other's
-        # result in that shared dict -- only the raw per-device .txt files
-        # on disk were safe; the manifest's convenience metadata was not.
-        # All command results now live under per_device[<name>]["commands"],
-        # so there is no shared key space between devices.
+        "per_device": {},
+        "manual_confirmations": {}
+        # The manifest also intentionally has NO flat, top-level
+        # "per_command" dict shared across every device in the run. Since
+        # ClusterXL and VSX are inherently pairs of devices, two devices
+        # running the same test_id (e.g. two CP cluster members both
+        # running T-01) would silently overwrite each other's result in a
+        # shared dict -- all command results live under
+        # per_device[<name>]["commands"] instead, so there is no shared key
+        # space between devices.
     }
 
     for device in inventory:
@@ -242,6 +266,27 @@ def capture_pre_post(ticket_number, phase, sections, devices=None, params=None, 
         except Exception as e:
             manifest["per_device"][device_name]["connection_status"] = "disconnected with error"
             print(f"Error processing {device['name']}: {e}")
+
+    # Ticket-level manual confirmations (commands/manual.yaml), run once
+    # per capture run -- NOT per device, since these apply to the change as
+    # a whole. Filtered by the same --section list as everything else, so
+    # a run scoped to sections that don't include "6" or "3.D" simply won't
+    # prompt for T-22/T-13-review.
+    for cmd in commands_manual:
+        section = cmd.get("section")
+        test_id = cmd.get("test_id")
+        description = cmd.get("description", cmd.get("note", ""))
+
+        if section not in sections:
+            continue
+
+        if skip_manual:
+            manifest["manual_confirmations"][test_id] = {
+                "section": section, "description": description,
+                "status": "skipped", "reason": "marked as manual-only"
+            }
+        else:
+            handle_ticket_level_manual_command(manifest, test_id, section, description)
 
     manifest["end_time"] = datetime.now().isoformat()
     manifest_file = os.path.join(run_dir, "capture_manifest.json")
