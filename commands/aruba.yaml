@@ -190,7 +190,8 @@
 - test_id: T-08
   section: "3.C"
   description: "VLAN presence/tagging"
-  api: "vlans.all"
+  command: "show vlan {vlan_id}"
+  mode: cli
   risk: read-only-safe
   requires_param: true
   params:
