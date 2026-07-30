@@ -99,6 +99,10 @@ def evaluate_test_id(device_name, test_id, post_cmd, pattern_library, diff_entry
     absent evidence must NEVER resolve to an auto-pass):
 
       1. manual-only -> always manual-review-required, human notes attached.
+         This also covers commands/manual.yaml's ticket-level entries
+         (T-22, T-13-review) -- they have the identical shape (no
+         "output_file" key), so they fall into this same branch with no
+         special-casing needed.
       2. read-only-debug -> always manual-review-required regardless of
          pattern match (capture may be time-truncated); pattern match is
          attached as supporting evidence only, never sets the verdict alone.
@@ -213,6 +217,41 @@ def main():
                 "manual_notes": result["manual_notes"],
                 "caveats": result["caveats"],
             })
+
+    # commands/manual.yaml entries (T-22, T-13-review) are ticket-level,
+    # not per-device (see capture.py's handle_ticket_level_manual_command)
+    # -- they live in manifest["manual_confirmations"], a key evaluate.py
+    # previously never looked at, so they never appeared anywhere in
+    # evaluation_report.json even after being wired into capture.py in step
+    # 11.2. These entries have the exact same shape as a per-device
+    # manual-only entry (no "output_file" key), so evaluate_test_id()'s
+    # existing manual-only branch handles them correctly with no changes
+    # needed to that function -- we just need to call it here too.
+    pre_manual = pre_manifest.get("manual_confirmations", {})
+    post_manual = post_manifest.get("manual_confirmations", {})
+
+    for test_id in sorted(set(pre_manual.keys()) | set(post_manual.keys())):
+        post_cmd = post_manual.get(test_id)
+        pre_cmd = pre_manual.get(test_id)
+
+        result = evaluate_test_id(
+            "N/A (ticket-level)", test_id, post_cmd, pattern_library,
+            diff_entry=None, post_run_dir=None, pre_cmd=pre_cmd
+        )
+
+        section = (post_cmd or pre_cmd or {}).get("section", "")
+        description = (post_cmd or pre_cmd or {}).get("description", "")
+
+        evaluation_report.append({
+            "device": "N/A (ticket-level)",
+            "test_id": test_id,
+            "section": section,
+            "description": description,
+            "verdict": result["verdict"],
+            "evidence": result["evidence"],
+            "manual_notes": result["manual_notes"],
+            "caveats": result["caveats"],
+        })
 
     with open(args.output, 'w') as file:
         json.dump(evaluation_report, file, indent=4)
